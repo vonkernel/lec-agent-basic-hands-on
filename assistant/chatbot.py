@@ -9,7 +9,10 @@ from langchain.messages import AIMessage, HumanMessage, SystemMessage
 
 model = init_chat_model("openai:gpt-6-luna")
 
-# TODO 3단계: 시스템 프롬프트를 만든다
+SYSTEM = SystemMessage(
+    "너는 사용자의 일정을 관리하는 비서다. "
+    "일정을 정리할 때는 '- 날짜 시간 제목' 형식의 목록으로 답한다."
+)
 
 
 def section(title):
@@ -30,7 +33,13 @@ if __name__ == "__main__":
     print("text:", ai.text)
     print("usage_metadata:", ai.usage_metadata)
 
-    # TODO 3단계: 시스템 프롬프트와 함께 메시지 리스트로 보낸다
+    section("3단계: 메시지 role과 시스템 프롬프트")
+    schedule = HumanMessage("내일 오후 3시 팀 회의, 모레 오전 10시 치과")
+    print("--- 시스템 프롬프트 있음 ---")
+    print(model.invoke([SYSTEM, schedule]).text)
+    print("\n--- 시스템 프롬프트 없음 ---")
+    print(model.invoke([schedule]).text)
+
     # TODO 4단계: history 없이 두 번 호출한 결과와 history를 다시 보낸 결과를 비교한다
     # TODO 5단계: history를 관리하는 CLI 대화 루프를 만들고 stream으로 출력한다
     # TODO 6단계: 턴마다 이번 입력·출력 토큰과 누적 입력 토큰을 출력한다
