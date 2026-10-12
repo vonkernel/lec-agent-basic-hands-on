@@ -56,6 +56,7 @@ if __name__ == "__main__":
     section("5단계: CLI 대화 루프와 스트리밍")
     print("종료: exit 또는 quit / 대화 비우기: /reset")
     history = [SYSTEM]
+    total = 0  # 6단계: 누적 입력 토큰
     while True:
         user = input("you> ").strip()
         if user in ("exit", "quit"):
@@ -74,4 +75,7 @@ if __name__ == "__main__":
         print()
         history.append(AIMessage(full.text))  # 대화 기억은 애플리케이션이 추가
 
-    # TODO 6단계: 턴마다 이번 입력·출력 토큰과 누적 입력 토큰을 출력한다
+        # 6단계: 턴별 토큰 관찰
+        u = full.usage_metadata  # API가 기록한 실제 사용량
+        total += u["input_tokens"]
+        print(f"[이번 입력 {u['input_tokens']} / 출력 {u['output_tokens']} / 누적 입력 {total}]")
