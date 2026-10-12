@@ -40,6 +40,18 @@ if __name__ == "__main__":
     print("\n--- 시스템 프롬프트 없음 ---")
     print(model.invoke([schedule]).text)
 
-    # TODO 4단계: history 없이 두 번 호출한 결과와 history를 다시 보낸 결과를 비교한다
+    section("4단계: 상태 없는 모델 확인")
+    # (1) history 없이 두 번 호출
+    model.invoke([SYSTEM, HumanMessage("내일 오후 3시에 팀 회의 있어")])
+    print("--- history 없이 ---")
+    print(model.invoke([SYSTEM, HumanMessage("내일 일정 뭐 있지?")]).text)
+
+    # (2) 애플리케이션이 history를 보관하고 매번 전체를 다시 전송
+    history = [SYSTEM, HumanMessage("내일 오후 3시에 팀 회의 있어")]
+    history.append(model.invoke(history))
+    history.append(HumanMessage("내일 일정 뭐 있지?"))
+    print("\n--- history를 다시 보냄 ---")
+    print(model.invoke(history).text)
+
     # TODO 5단계: history를 관리하는 CLI 대화 루프를 만들고 stream으로 출력한다
     # TODO 6단계: 턴마다 이번 입력·출력 토큰과 누적 입력 토큰을 출력한다
