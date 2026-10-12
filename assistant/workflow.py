@@ -1,11 +1,13 @@
 """세션 2 실습: 일정·할 일 관리 Workflow 그래프"""
 
+import uuid
 from typing import Annotated
 
 from typing_extensions import TypedDict
 
 from langchain.chat_models import init_chat_model
 from langchain.messages import AnyMessage, HumanMessage, SystemMessage
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
@@ -30,10 +32,27 @@ builder = StateGraph(State)
 builder.add_node("reply", reply)
 builder.add_edge(START, "reply")
 builder.add_edge("reply", END)
-graph = builder.compile()
+
+# 2단계: checkpointer
+graph = builder.compile(checkpointer=InMemorySaver())
+
+
+def new_config():
+    return {"configurable": {"thread_id": str(uuid.uuid4())}}
+
 
 if __name__ == "__main__":
-    print(graph.get_graph().draw_mermaid())
-    result = graph.invoke({"messages": [HumanMessage("내일 오후 3시에 팀 회의가 있어.")]})
-    for m in result["messages"]:
-        print(f"{m.type}: {m.text}")
+    print("종료: exit 또는 quit / 새 대화: /reset")
+    cfg = new_config()
+    while True:
+        user = input("you> ").strip()
+        if user in ("exit", "quit"):
+            break
+        if not user:
+            continue
+        if user == "/reset":
+            cfg = new_config()
+            print("(새 대화를 시작합니다)")
+            continue
+        result = graph.invoke({"messages": [HumanMessage(user)]}, cfg)
+        print(result["messages"][-1].text)
