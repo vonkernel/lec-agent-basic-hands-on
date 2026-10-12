@@ -53,5 +53,25 @@ if __name__ == "__main__":
     print("\n--- history를 다시 보냄 ---")
     print(model.invoke(history).text)
 
-    # TODO 5단계: history를 관리하는 CLI 대화 루프를 만들고 stream으로 출력한다
+    section("5단계: CLI 대화 루프와 스트리밍")
+    print("종료: exit 또는 quit / 대화 비우기: /reset")
+    history = [SYSTEM]
+    while True:
+        user = input("you> ").strip()
+        if user in ("exit", "quit"):
+            break
+        if not user:
+            continue
+        if user == "/reset":
+            history = [SYSTEM]
+            print("(대화를 비웠습니다)")
+            continue
+        history.append(HumanMessage(user))
+        full = None
+        for chunk in model.stream(history):  # 토큰 단위로 수신
+            print(chunk.text, end="", flush=True)
+            full = chunk if full is None else full + chunk
+        print()
+        history.append(AIMessage(full.text))  # 대화 기억은 애플리케이션이 추가
+
     # TODO 6단계: 턴마다 이번 입력·출력 토큰과 누적 입력 토큰을 출력한다
