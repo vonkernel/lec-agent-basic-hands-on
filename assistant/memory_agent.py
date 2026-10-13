@@ -5,7 +5,10 @@ import sys
 from pathlib import Path
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langchain.agents.middleware import (
+    HumanInTheLoopMiddleware,
+    SummarizationMiddleware,
+)
 from langchain.messages import HumanMessage
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
@@ -53,6 +56,11 @@ agent = create_agent(
     tools=TOOLS,
     system_prompt=SYSTEM,
     middleware=[
+        SummarizationMiddleware(  # 3단계: 메시지가 20개를 넘으면 최근 10개만 남기고 요약
+            model="openai:gpt-6-luna",
+            trigger=("messages", 20),
+            keep=("messages", 10),
+        ),
         HumanInTheLoopMiddleware(interrupt_on={  # 삭제 전 사람 승인
             "delete_event": True,
             "delete_task": True,
