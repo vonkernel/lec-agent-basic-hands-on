@@ -9,3 +9,6 @@ __pycache__/
 
 # IntelliJ 프로젝트 설정
 .idea/
+
+# 실행 중에 생기는 일정·할 일 데이터
+data/
