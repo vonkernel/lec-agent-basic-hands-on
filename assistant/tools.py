@@ -21,6 +21,10 @@ def get_now() -> str:
 def add_event(title: str, start: str, end: str) -> str:
     """시작과 끝 시각이 있는 일정을 등록한다. start, end는 YYYY-MM-DDTHH:MM 형식.
     기한만 있는 할 일은 이 도구가 아니라 add_task로 등록한다."""
+    overlap = storage.find_overlap(start, end)  # 4단계: 겹치면 오류를 결과로
+    if overlap:
+        return (f"등록하지 않음. 해당 시간에 이미 일정이 있습니다: "
+                f"{overlap['title']} {overlap['start']} ~ {overlap['end']}")
     e = storage.add_event(title, start, end)
     return f"등록함: [{e['id']}] {title} {start} ~ {end}"
 
@@ -38,7 +42,10 @@ def list_events(date: str = "") -> str:
 @tool
 def delete_event(event_id: str) -> str:
     """id로 일정을 삭제한다. id를 모르면 먼저 list_events로 확인한다. 실행 전에 사용자 승인을 받는다."""
-    return "삭제함" if storage.delete_event(event_id) else "실패"
+    if storage.delete_event(event_id):
+        return "삭제함"
+    return (f"삭제하지 않음. id {event_id}인 일정이 없습니다. "
+            "list_events로 id를 확인하세요.")
 
 
 @tool
@@ -62,13 +69,19 @@ def list_tasks() -> str:
 @tool
 def complete_task(task_id: str) -> str:
     """id로 할 일을 완료로 표시한다. id를 모르면 먼저 list_tasks로 확인한다."""
-    return "완료로 표시함" if storage.complete_task(task_id) else "실패"
+    if storage.complete_task(task_id):
+        return "완료로 표시함"
+    return (f"표시하지 않음. id {task_id}인 할 일이 없습니다. "
+            "list_tasks로 id를 확인하세요.")
 
 
 @tool
 def delete_task(task_id: str) -> str:
     """id로 할 일을 삭제한다. id를 모르면 먼저 list_tasks로 확인한다. 실행 전에 사용자 승인을 받는다."""
-    return "삭제함" if storage.delete_task(task_id) else "실패"
+    if storage.delete_task(task_id):
+        return "삭제함"
+    return (f"삭제하지 않음. id {task_id}인 할 일이 없습니다. "
+            "list_tasks로 id를 확인하세요.")
 
 
 TOOLS = [get_now, add_event, list_events, delete_event,
