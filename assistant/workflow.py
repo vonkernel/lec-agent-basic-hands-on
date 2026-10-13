@@ -12,6 +12,7 @@ from langchain.messages import AIMessage, AnyMessage, HumanMessage, SystemMessag
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.types import Command, interrupt
 
 model = init_chat_model("openai:gpt-6-luna")
 
@@ -83,14 +84,38 @@ def route_intent(state: State) -> Literal["extract", "reply"]:
     return "extract" if state["intent"] == "add" else "reply"
 
 
+# 4단계: 빠진 정보 되묻기
+LABELS = {"title": "제목", "start": "시작 시각", "end": "끝 시각"}
+
+
+def ask(state: State):
+    missing = []
+    for e in state["draft"]:
+        for key, value in e.items():
+            if value is None:
+                # 어느 일정인지 알 수 있게 제목과 시작 시각을 앞에 붙임
+                parts = [e["title"], e["start"], LABELS[key]]
+                missing.append(" ".join(p for p in parts if p))
+    question = f"다음 정보를 알려 주세요: {', '.join(missing)}"
+    answer = interrupt(question)  # 여기서 멈춤. 재개하면 사용자의 답을 반환
+    return {"messages": [AIMessage(question), HumanMessage(answer)]}
+
+
+def check(state: State) -> Literal["ask", "save"]:
+    return "ask" if any(None in e.values() for e in state["draft"]) else "save"
+
+
 builder = StateGraph(State)
 builder.add_node("classify", classify)
 builder.add_node("extract", extract)
 builder.add_node("save", save)
 builder.add_node("reply", reply)
+builder.add_node("ask", ask)  # 4단계
 builder.add_edge(START, "classify")
 builder.add_conditional_edges("classify", route_intent, ["extract", "reply"])
-builder.add_edge("extract", "save")
+# 4단계: extract → save 엣지를 빈 값 여부에 따른 조건부 엣지로 바꿈
+builder.add_conditional_edges("extract", check, ["ask", "save"])
+builder.add_edge("ask", "extract")  # 4단계: 사이클
 builder.add_edge("save", END)
 builder.add_edge("reply", END)
 
@@ -116,4 +141,10 @@ if __name__ == "__main__":
             print("(새 대화를 시작합니다)")
             continue
         result = graph.invoke({"messages": [HumanMessage(user)]}, cfg)
+        while "__interrupt__" in result:  # 4단계: 되묻는 질문에 답하고 재개
+            question = result["__interrupt__"][0].value
+            answer = input(f"bot> {question}\nyou> ").strip()
+            if answer in ("exit", "quit"):  # 되묻는 중에도 종료
+                raise SystemExit
+            result = graph.invoke(Command(resume=answer), cfg)
         print(result["messages"][-1].text)
