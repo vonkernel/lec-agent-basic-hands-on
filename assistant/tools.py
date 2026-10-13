@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from langchain.tools import tool
 
-import storage
+import google_storage as storage  # 마지막 단계: 저장소를 Google로 교체
 from clock import local_tz_name
 
 

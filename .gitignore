@@ -12,3 +12,7 @@ __pycache__/
 
 # 실행 중에 생기는 데이터 (일정·할 일 JSON, 대화·기억 SQLite)
 data/
+
+# Google OAuth 클라이언트 파일과 발급된 토큰
+credentials.json
+token.json
