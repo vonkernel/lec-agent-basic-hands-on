@@ -1,11 +1,13 @@
 """세션 4 실습: 메모리를 갖춘 일정·할 일 관리 Agent"""
 
-import uuid
+import sqlite3
+import sys
+from pathlib import Path
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.messages import HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
 from clock import local_tz_name
@@ -38,6 +40,13 @@ SYSTEM = f"""
 비서: (get_now 호출 → add_event 호출) M월 D일 15:00~16:00 팀 회의를 등록했습니다. 끝 시각을 말하지 않아 1시간으로 잡았습니다.
 """
 
+DATA = Path(__file__).resolve().parent.parent / "data"
+DATA.mkdir(exist_ok=True)
+# 2단계: 대화를 SQLite 파일에 저장
+checkpointer = SqliteSaver(
+    sqlite3.connect(DATA / "checkpoints.db", check_same_thread=False)
+)
+
 # 1단계: create_agent로 옮기기
 agent = create_agent(
     "openai:gpt-6-luna",
@@ -49,27 +58,20 @@ agent = create_agent(
             "delete_task": True,
         }),
     ],
-    checkpointer=InMemorySaver(),
+    checkpointer=checkpointer,  # 2단계
 )
 
 
-def new_config():
-    return {"configurable": {"thread_id": str(uuid.uuid4())},
-            "recursion_limit": 20}
-
-
 if __name__ == "__main__":
-    print("종료: exit 또는 quit / 새 대화: /reset")
-    cfg = new_config()
+    # 2단계: 대화 이름을 실행 파라미터로 받음
+    thread = sys.argv[1] if len(sys.argv) > 1 else "기본"
+    cfg = {"configurable": {"thread_id": thread}, "recursion_limit": 20}
+    print(f"대화: {thread} / 종료: exit 또는 quit")
     while True:
         user = input("you> ").strip()
         if user in ("exit", "quit"):
             break
         if not user:
-            continue
-        if user == "/reset":
-            cfg = new_config()
-            print("(새 대화를 시작합니다)")
             continue
         result = agent.invoke({"messages": [HumanMessage(user)]}, cfg)
         while "__interrupt__" in result:  # 삭제 승인 요청
