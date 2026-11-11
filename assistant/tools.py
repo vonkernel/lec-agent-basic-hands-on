@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from langchain.tools import tool
 
-import storage
+import google_storage as storage  # 마지막 단계: 저장소를 Google로 교체
 
 TZ = "Asia/Seoul"  # IANA 시간대 이름. Codespaces 기본값은 UTC라 직접 정함
 
