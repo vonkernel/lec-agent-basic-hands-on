@@ -21,6 +21,10 @@ def get_now() -> str:
 @tool
 def add_event(title: str, start: str, end: str) -> str:
     """시작과 끝 시각이 있는 일정을 등록한다. start, end는 YYYY-MM-DDTHH:MM 형식."""
+    overlap = storage.find_overlap(start, end)  # 4단계: 겹치면 오류를 반환
+    if overlap:
+        return (f"등록하지 않음. 해당 시간에 이미 일정이 있습니다: "
+                f"{overlap['title']} {overlap['start']} ~ {overlap['end']}")
     e = storage.add_event(title, start, end)
     return f"등록함: [{e['id']}] {title} {start} ~ {end}"
 
@@ -38,7 +42,10 @@ def list_events(date: str = "") -> str:
 @tool
 def delete_event(event_id: str) -> str:
     """id로 일정을 삭제한다. id를 모르면 먼저 list_events로 확인한다."""
-    return "삭제함" if storage.delete_event(event_id) else "실패"
+    if storage.delete_event(event_id):
+        return "삭제함"
+    return (f"삭제하지 않음. id {event_id}인 일정이 없습니다. "
+            "list_events로 id를 확인하세요.")
 
 
 TOOLS = [get_now, add_event, list_events, delete_event]
